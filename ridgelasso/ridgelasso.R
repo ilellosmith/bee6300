@@ -31,17 +31,6 @@ library("glmnet", lib.loc="/Library/Frameworks/R.framework/Versions/3.4/Resource
 #run ridge and lasso regressions
 x <- data.matrix(X.final[,2:ncol(X.final)]) #all of the covariates
 y <- as.vector(X.final[,1]) #annual flow
-"
-for (i in 1:20) {
-#cv.lasso <- cv.glmnet(x,y, nfolds = 10, alpha = 1) 
-#cv.lasso
-#print(min(cv.lasso$lambda))
-#plot(cv.lasso)
-cv.lasso <- cv.glmnet(x,y, alpha = 1) # nfolds=10,
-print(min(cv.lasso$lambda))
-#plot(cv.lasso)
-}
-"
 #cross validation lasso
 cv.lasso <- cv.glmnet(x,y, alpha = 1) # nfolds=10,
 lambda.lasso <-cv.lasso$lambda.min
@@ -108,8 +97,6 @@ std_y <- c(0.5,1.2)
 boxplot(ols_rmse, ylim = std_y, main = "OLS RMSE")
 boxplot(lasso_rmse, ylim = std_y, main = "Lasso RMSE")
 boxplot(ridge_rmse, ylim = std_y, main = "Ridge RMSE")
-
-
 
 
  
