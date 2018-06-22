@@ -1,4 +1,4 @@
-#doc: this script explores collinearity in flow data from two gages in upstate NY
+#doc: this script explores collinearity in flow data from two gages in Western, MA
 #data is standardized, projected onto 1:1 line and Euclidean norms are calculated
 setwd("~/r/bee6300/hw1")
 #read in files
