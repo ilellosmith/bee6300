@@ -1,3 +1,8 @@
+#doc: this R script plots probability plots and quantile plots of stream gage data, as well as Manahalobis distance
+#from the mean vector to assess the normality of the data. The script then imputes missing data using properties of the 
+#multivariate normal distribution. Finally, it calculates the Hoteling-T statistic to assess whether the man precipitation
+#for the gages has changed between the first 15 years of data, and the subsequent 16 years of data. 
+#NB: much of this code could be made more efficient with loops
 setwd("~/r/bee6300/hw3")
 #read in files
 prcp <- read.csv('Ontario.prcp.csv',header=F)
