@@ -1,3 +1,5 @@
+#doc: this R script compares the explanatory power (via RMSE) of OLS, ridge and lasso regressions on 
+#gage data from across the Northeast
 setwd("~/r/bee6300/hw2")
 #read in files
 gages_data <- read.csv('gages2.data.csv',header=T)
@@ -97,6 +99,3 @@ std_y <- c(0.5,1.2)
 boxplot(ols_rmse, ylim = std_y, main = "OLS RMSE")
 boxplot(lasso_rmse, ylim = std_y, main = "Lasso RMSE")
 boxplot(ridge_rmse, ylim = std_y, main = "Ridge RMSE")
-
-
- 
