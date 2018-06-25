@@ -1,3 +1,7 @@
+#doc: this R script reads in Palmer Drought Severity Index (PDSI) data, runs a PCA on the data to assess polarity in the PDSI values over 
+#time, visualizes the Empirical Orthogonal Functions (EOFs), variance explained by EOFs - allowing for North's 
+# Rule of thumb, visualizes rotated EOFs (REOFs) and uses principal components to predict a future year's PDSI pattern. 
+#NB: the above tasks could be accomplished in half the lines of this script or less using loops. 
 setwd("~/r/bee6300/hw4")
 load("PDSI.Final.RData")
 load("mylon.RData")
@@ -104,13 +108,6 @@ intvl <- abs((high - low)/20)
 mybreaks <- c(seq(low,(0-intvl),by=intvl),seq(0,high,by=intvl))
 #assign each element of a particular EOF to one of the categories based on the intervals above
 #keep the rotated EOFS on the same scale as the originals!
-#^tried this, but found faded versions of patterns with modified scale. Code is commented below
-"mybreaks <- c(seq(-0.04,-0.001,by=0.004),seq(0.001,0.04,by=0.004))
-mycat1 <- as.numeric(cut(reofs[,1],breaks=mybreaks))
-mycat2 <- as.numeric(cut(reofs[,2],breaks=mybreaks))
-mycat3 <- as.numeric(cut(reofs[,3],breaks=mybreaks))
-mycat4 <- as.numeric(cut(reofs[,4],breaks=mybreaks))
-"
 mycat1 <- as.numeric(cut(reofs.std[,1],breaks=mybreaks))
 mycat2 <- as.numeric(cut(reofs.std[,2],breaks=mybreaks))
 mycat3 <- as.numeric(cut(reofs.std[,3],breaks=mybreaks))
