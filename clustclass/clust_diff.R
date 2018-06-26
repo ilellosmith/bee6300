@@ -1,3 +1,8 @@
+#doc: this R script clusters stream catchments using single linkage, complete linkage and centroid methods. 
+#It compares the mean properties of classified groups and whether or not they contain brook trout. 
+#Using K-means clustering, the script assesses how many groups are appropriate to parsimoniously explain as much variance as 
+#possible. It then uses Fischer's linear discrimination to classify new stream catchments into two groups - likely to contain
+#brook trout or unlikely to contain brook trout. 
 setwd("~/r/bee6300/hw5")
 covariates <- read.csv("Maryland.Trout.csv")
 #scale covariates
