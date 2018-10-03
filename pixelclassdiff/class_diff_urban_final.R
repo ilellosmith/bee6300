@@ -3,7 +3,18 @@
 #building, grass, pavement (includes asphalt, concrete, car), pool, shadow, soil, and tree. 
 #The script applies Fischer's linear discrimination twice to compare model accuracy using just spectral information 
 #to model accuracy using spectral information and super object information 
+#NB: This code need stylistic changes. It would benefit greatly from function definition with some of the repetitive
+#calls to for loops. 
 setwd("~/r/bee6300/f_proj")
+# load dependencies, installing if necessary
+REQUIRED_PACKAGES <- c("GGally", "ggplot2", "plyr", "fst", "jsonlite", "readODS", "rmatio", "xml2", "yaml",
+                       "openxlsx", "textclean", "tibble", "rvest", "httr")
+package.check <- lapply(REQUIRED_PACKAGES, FUN = function(x) {
+  if (! require(x, character.only = TRUE)) {
+    install.packages(x, dependencies = TRUE)
+    library(x, character.only = TRUE)
+  }
+})
 covariates <- read.csv("training.csv")
 select_covariates <- data.frame(cbind(covariates$Area, covariates$Round, covariates$Bright, covariates$Compact, covariates$LW, covariates$Assym
                                       , covariates$Dens, covariates$Mean_G, covariates$Mean_R, covariates$Mean_NIR, covariates$SD_G, covariates$SD_R
@@ -39,12 +50,7 @@ colnames(scale.spect) <- c('class','mG', 'mR', 'mNIR', 'sdG', 'sdR',
 class <- (split(scale.spect[,2:(k+1)], scale.spect[,1]))
 class.even <- do.call(rbind.fill, class)
 #plot covariance matrixes for each variable and each group
-#install.packages('GGally')
-library(GGally)
-library(ggplot2)
-library(plyr)
 cols <- c('aquamarine', 'firebrick4', 'darkorange3', 'goldenrod3', 'forestgreen', 'blue','blueviolet')
-#ggplot2
 cols.all <- class
 cols.all$`1`[!is.na(cols.all$`1`)] <- cols[1]
 final.cols <- c(cols.all$`1`[,1])
