@@ -1,6 +1,15 @@
 #doc: this R script compares the explanatory power (via RMSE) of OLS, ridge and lasso regressions on 
 #gage data from across the Northeast
 setwd("~/r/bee6300/hw2")
+# load dependencies, installing if necessary
+REQUIRED_PACKAGES <- c("devtools", "broom", "csvy", "car", "glmnet", "ggplot2")
+package.check <- lapply(REQUIRED_PACKAGES, FUN = function(x) {
+  if (! require(x, character.only = TRUE)) {
+    install.packages(x, dependencies = TRUE)
+    library(x, character.only = TRUE)
+  }
+})
+install_github("dgrtwo/broom")
 #read in files
 gages_data <- read.csv('gages2.data.csv',header=T)
 #center and scale each column
@@ -9,13 +18,7 @@ X.final <- data.frame(X.final)
 #fit standard linear regression for average annual runoff vs. other covariates 
 regular.lm <- lm(runoff~.,data=X.final)
 table <- summary(regular.lm)
-#install tools to export tables 
-install.packages("devtools")
-library("devtools", lib.loc="/Library/Frameworks/R.framework/Versions/3.4/Resources/library")
-install_github("dgrtwo/broom")
-library("broom", lib.loc="/Library/Frameworks/R.framework/Versions/3.4/Resources/library")
 regtable <- tidy(regular.lm)
-#regtable
 regtable2 <-tidy(table)
 write.csv(regtable, "tidy_lmfit.csv")
 write.csv(regtable2, "regtable2.csv")
@@ -24,12 +27,10 @@ pcor <- cor(X.final)
 pcortable <- tidy(pcor)
 #pcortable
 write.csv(pcortable, "tidy_pcortable.csv")
-library("car", lib.loc="/Library/Frameworks/R.framework/Versions/3.4/Resources/library")
 VIF <- vif(regular.lm)
 viftable <- tidy(VIF)
 #viftable
 write.csv(viftable, "tidy_viftable.csv")
-library("glmnet", lib.loc="/Library/Frameworks/R.framework/Versions/3.4/Resources/library")
 #run ridge and lasso regressions
 x <- data.matrix(X.final[,2:ncol(X.final)]) #all of the covariates
 y <- as.vector(X.final[,1]) #annual flow
@@ -93,7 +94,6 @@ ridge.pred <- predict(ridge.lm,newx=newx)
 rmse.ridge <- sqrt(mean((ridge.pred-X.final$runoff[subset2])^2))
 ridge_rmse[i] <-rmse.ridge
 }
-#library("ggplot2", lib.loc="/Library/Frameworks/R.framework/Versions/3.4/Resources/library")
 par(mfrow = c(1,3))
 std_y <- c(0.5,1.2)
 boxplot(ols_rmse, ylim = std_y, main = "OLS RMSE")
