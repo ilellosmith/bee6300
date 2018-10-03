@@ -7,8 +7,7 @@
 #calls to for loops. 
 setwd("~/r/bee6300/f_proj")
 # load dependencies, installing if necessary
-REQUIRED_PACKAGES <- c("GGally", "ggplot2", "plyr", "fst", "jsonlite", "readODS", "rmatio", "xml2", "yaml",
-                       "openxlsx", "textclean", "tibble", "rvest", "httr")
+REQUIRED_PACKAGES <- c("GGally", "ggplot2", "plyr")
 package.check <- lapply(REQUIRED_PACKAGES, FUN = function(x) {
   if (! require(x, character.only = TRUE)) {
     install.packages(x, dependencies = TRUE)
