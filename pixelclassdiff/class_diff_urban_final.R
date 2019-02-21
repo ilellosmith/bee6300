@@ -37,42 +37,55 @@ setwd(WORKING_DIRECTORY)
 covariates <- as_tibble(read.csv(TRAINING_DATA)) %>%
   select(one_of(c(SHAPE_COVARIATES, FILL_COVARIATES, SPECTRAL_COVARIATES, CLASSIFICATION)))
 scale_covariates <- as_tibble(cbind(scale(covariates %>% 
-                                          select(one_of(SHAPE_COVARIATES, FILL_COVARIATES, SPECTRAL_COVARIATES)),
-                                          center = T, scale =T),
-                                          covariates %>% select(CLASSIFICATION)))
+                                            select(one_of(SHAPE_COVARIATES, FILL_COVARIATES, SPECTRAL_COVARIATES)),
+                                            center = T, scale =T),
+                                            covariates %>% 
+                                              select(CLASSIFICATION)))
 
 ####### PART 1: run classification with just spectral covariates
-spect <-  scale_covariates %>% select(one_of(c(SPECTRAL_COVARIATES, CLASSIFICATION))) %>% group_by(class)
+spect <-  scale_covariates %>% 
+  select(one_of(c(SPECTRAL_COVARIATES, CLASSIFICATION))) %>% 
+  group_by(class)
 
 # check for similar covariance structures 
-grp_count <- spect %>% summarize(n = n())
+grp_count <- spect %>% 
+  summarize(n = n())
 N <- sum(grp_count$n)
 G <- nrow(grp_count)
 split_tibble <- function(tibble, col = 'col') tibble %>% split(.[,col]) # function to split tibble into list of classes
 cov_tbl <- spect %>% do(data.frame((cov(.[,1:(ncol(spect)-1)]))))  # calculate covariance matrix for each group
-cov_list <- cov_tbl %>% split_tibble(col = 'class')  # create list of covariance matrices by group
+cov_list <- cov_tbl %>% 
+  split_tibble(col = 'class')  # create list of covariance matrices by group
 cov_list_no_class <- lapply(cov_list, function(x) x[,-1]) # drop the first column (class label) from each group
 
 # plot covariance matrices for each group
 dev.new()
 par(mfrow = c(2,4))
-mapply(x = cov_list_no_class, n = names(cov_list_no_class), FUN = function(x, n, i) 
-{a <- n[i]
-m <- cov2cor(as.matrix(as.data.frame(x), row.names = SPECTRAL_COVARIATES))
+
+# iterate across a list of covariance matrixes and a list of land types
+# convert individual covariance matrices to correlation matrices
+# plot correlation matrix with associated land type name
+c_plots <- mapply(x = cov_list_no_class, n = names(cov_list_no_class), FUN = function(x, n, i) {
+a <- n[i]
+m <- cov2cor(as.matrix(x, row.names = SPECTRAL_COVARIATES))
+rownames(m) <- SPECTRAL_COVARIATES
 corrplot(m, type = "upper", method = "color", title = a, mar=c(0,0,2,0))
 }) 
 
 # calculate pooled covariance, group and grand means
-cov_list_n_no_class <- lapply(1:nrow(grp_count), function(i, d, g) d[i]*(g[i,2]-1), d = cov_list_no_class, g = grp_count)
+cov_list_n_no_class <- lapply(1:nrow(grp_count), function(i, d, g) d[i]*(g[i,2]-1), d = cov_list_no_class, g = grp_count) # for each group, calculate (n-1)*covariance matrix
 sum_cov <- Reduce('+', cov_list_n_no_class) # sum (n-1)*covariance matrix for all groups
 spool <- 1/(N-G)*sum_cov # calculate pooled covariance matrix
-group_means <- t(data.matrix((spect %>% summarize_all(.funs = mean)))[,-1]) # scaled group means
-grand_means <- t((as.matrix(spect %>% ungroup() %>% summarize_at(SPECTRAL_COVARIATES, mean)))) # scaled grand means, should be ~ 0
+group_means <- t(data.matrix((spect %>% 
+                                summarize_all(.funs = mean)))[,-1]) # scaled group means
+grand_means <- t((as.matrix(spect %>% 
+                              ungroup() %>% 
+                              summarize_at(SPECTRAL_COVARIATES, mean)))) # scaled grand means, should be ~ 0
 
 # calculate between-groups covariance matrix Sb
 Sb <- 1/(G-1)*((group_means)%*%t(group_means)) 
 sig_noise <- solve(spool)%*%Sb # signal to noise matrix
-J <- G-1 # number of principal directions (eigenvectors) in sig_noise
+J <- G-1 # number of principal directions (eigenvectors) of separability in sig_noise
 
 # calculate alphas 
 alpha <- matrix(nrow=nrow(sig_noise),ncol=J)
@@ -87,15 +100,22 @@ write.csv(alpha, 'alpha1.csv')
 covariates_test <- as_tibble(read.csv(TEST_DATA)) %>%
   select(one_of(c(SHAPE_COVARIATES, FILL_COVARIATES, SPECTRAL_COVARIATES, CLASSIFICATION)))
 scale_covariates_test <- as_tibble(cbind(scale(covariates_test %>% 
-                                            select(one_of(SHAPE_COVARIATES, FILL_COVARIATES, SPECTRAL_COVARIATES)),
-                                          center = T, scale =T),
-                                    covariates_test %>% select(CLASSIFICATION)))
-spect_test <- scale_covariates_test %>% select(one_of(c(SPECTRAL_COVARIATES, CLASSIFICATION))) %>% group_by(class)
-grp_count_test <- spect_test %>% summarize(n = n())
+                                                 select(one_of(SHAPE_COVARIATES, FILL_COVARIATES, SPECTRAL_COVARIATES)),
+                                               center = T, scale =T),
+                                         covariates_test %>% 
+                                           select(CLASSIFICATION)))
+spect_test <- scale_covariates_test %>% 
+  select(one_of(c(SPECTRAL_COVARIATES, CLASSIFICATION))) %>% 
+  group_by(class)
+grp_count_test <- spect_test %>% 
+  summarize(n = n())
 N_test <- sum(grp_count_test$n)
 spect_test_matrix <- data.matrix(spect_test[,-9])
 
 # calculate distance of each spectral measurement from groups, classify measurement into closest group  
+# outer loop is every pixel in testing data
+# middle loop is every land type
+# innermost loop is every variable
 classified <- c(1:nrow(spect_test))
 for (i in 1:nrow(spect_test)) {
   dist_g <- matrix(nrow = G, ncol = J)
@@ -118,11 +138,18 @@ err_rate <- msclass/(correct+msclass)
 print(paste('missclassified count:', msclass, ', total:', correct+msclass, ', error rate:', err_rate)) 
 
 # calculate correct prediction rate by group
+# function iterates over groups, dividing correct classification by total number of actual pixels of a given land type
 correct_g <- unlist(sapply(1:G, function(g, diag, count) diag[g,g]/count[g,2], diag = confusion_test, count = grp_count_test))
-rbind(confusion_test, correct_g, t(grp_count_test[2])) %>% write.csv("confusion_test.csv") #output results in csv
+rbind(confusion_test, correct_g, t(grp_count_test[2])) %>% 
+  write.csv("confusion_test.csv") #output results in csv
 
 # classify training data to compare prediction accuracy 
 no_group_spect <- data.matrix(ungroup(spect))[,-9]
+
+# calculate distance of each spectral measurement from groups, classify measurement into closest group  
+# outer loop is every pixel in testing data
+# middle loop is every land type
+# innermost loop is every variable
 classified <- c(1:nrow(spect))
 for (i in 1:nrow(spect)) {
   dist_g <- matrix(nrow = G, ncol = J)
@@ -145,8 +172,10 @@ err_rate <- msclass/(correct+msclass)
 print(paste('missclassified count:', msclass, ', total:', correct+msclass, ', error rate:', err_rate)) 
 
 # calculate correct prediction rate by group
+# function iterates over groups, dividing correct classification by total number of actual pixels of a given land type
 correct_g <- unlist(sapply(1:G, function(g, diag, count) diag[g,g]/count[g,2], diag = confusion_train, count = grp_count))
-rbind(confusion_train, correct_g, t(grp_count[2])) %>% write.csv("confusion_train.csv") #output results in csv
+rbind(confusion_train, correct_g, t(grp_count[2])) %>%
+  write.csv("confusion_train.csv") #output results in csv
 
 ####### PART 2: run analysis with spectral and super-object covariates
 spect_so <- scale_covariates %>% 
@@ -158,21 +187,28 @@ grp_count <- spect_so %>% summarize(n = n())
 N <- sum(grp_count$n)
 G <- nrow(grp_count)
 split_tibble <- function(tibble, col = 'col') tibble %>% split(.[,col]) # function to split tibble into list of classes
-cov_tbl <- spect_so %>% do(data.frame((cov(.[,1:(ncol(spect_so)-1)]))))  # calculate covariance matrix for each group
-cov_list <- cov_tbl %>% split_tibble(col = 'class')  # create list of covariance matrices by group
+cov_tbl <- spect_so %>% 
+  do(data.frame((cov(.[,1:(ncol(spect_so)-1)]))))  # calculate covariance matrix for each group
+cov_list <- cov_tbl %>% 
+  split_tibble(col = 'class')  # create list of covariance matrices by group
 cov_list_no_class <- lapply(cov_list, function(x) x[,-1]) # drop the first column (class label) from each group
 
 # plot covariance matrices for each group
 dev.new()
 par(mfrow = c(2,4))
-mapply(x = cov_list_no_class, n = names(cov_list_no_class), FUN = function(x, n, i) 
-{a <- n[i]
-m <- cov2cor(as.matrix(as.data.frame(x), row.names = c(SPECTRAL_COVARIATES,FILL_COVARIATES, SHAPE_COVARIATES)))
+
+# iterate across a list of covariance matrixes and a list of land types
+# convert individual covariance matrices to correlation matrices
+# plot correlation matrix with associated land type name
+c_plots <- mapply(x = cov_list_no_class, n = names(cov_list_no_class), FUN = function(x, n, i) {
+  a <- n[i]
+m <- cov2cor(as.matrix(x, row.names = c(SPECTRAL_COVARIATES,FILL_COVARIATES, SHAPE_COVARIATES)))
+rownames(m) <- c(SPECTRAL_COVARIATES, FILL_COVARIATES, SHAPE_COVARIATES)
 corrplot(m, type = "upper", method = "color", title = a, mar=c(0,0,2,0))
 }) 
 
 # calculate pooled covariance, group and grand means
-cov_list_n_no_class <- lapply(1:nrow(grp_count), function(i, d, g) d[i]*(g[i,2]-1), d = cov_list_no_class, g = grp_count)
+cov_list_n_no_class <- lapply(1:nrow(grp_count), function(i, d, g) d[i]*(g[i,2]-1), d = cov_list_no_class, g = grp_count) # for each group, calculate (n-1)*covariance matrix
 sum_cov <- Reduce('+', cov_list_n_no_class) # sum (n-1)*covariance matrix for all groups
 spool <- 1/(N-G)*sum_cov # calculate pooled covariance matrix
 group_means <- t(data.matrix((spect_so %>% summarize_all(.funs = mean)))[,-1]) # scaled group means
@@ -227,6 +263,7 @@ err_rate <- msclass/(correct+msclass)
 print(paste('missclassified count:', msclass, ', total:', correct+msclass, ', error rate:', err_rate)) 
 
 # calculate correct prediction rate by group
+# function iterates over groups, dividing correct classification by total number of actual pixels of a given land type
 correct_g <- unlist(sapply(1:G, function(g, diag, count) diag[g,g]/count[g,2], diag = confusion_test, count = grp_count_test))
 rbind(confusion_test, correct_g, t(grp_count_test[2])) %>% write.csv("confusion_test2.csv") #output results in csv
 
@@ -254,5 +291,6 @@ err_rate <- msclass/(correct+msclass)
 print(paste('missclassified count:', msclass, ', total:', correct+msclass, ', error rate:', err_rate)) 
 
 # calculate correct prediction rate by group
+# function iterates over groups, dividing correct classification by total number of actual pixels of a given land type
 correct_g <- unlist(sapply(1:G, function(g, diag, count) diag[g,g]/count[g,2], diag = confusion_train, count = grp_count))
 rbind(confusion_train, correct_g, t(grp_count[2])) %>% write.csv("confusion_train2.csv") #output results in csv
